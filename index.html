@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop Sales Book</title>
+<style>
+  :root { --green: #1a7f37; --green-dark: #146c2e; --red: #c0392b; --amber: #b7791f; --bg: #f4f6f4; --card: #ffffff; --text: #1c1c1c; --muted: #666; --line: #e3e6e3; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px 14px 48px; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 1.5rem; line-height: 1.2; }
+  h1 small { display: block; font-size: 0.85rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .shopname { font-size: 0.9rem; color: var(--muted); text-align: right; }
+  .shopname button { background: none; border: none; color: var(--green); font-size: 0.85rem; cursor: pointer; padding: 0; text-decoration: underline; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .card .label { font-size: 0.8rem; color: var(--muted); }
+  .card .value { font-size: 1.35rem; font-weight: 700; margin-top: 2px; }
+  .card .sub { font-size: 0.8rem; color: var(--muted); }
+  .card.profit .value { color: var(--green); }
+  .card.loss .value { color: var(--red); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 1.05rem; margin-bottom: 10px; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 10px 0 4px; }
+  input, select { width: 100%; padding: 11px 12px; font-size: 1rem; border: 1px solid #c9cec9; border-radius: 8px; background: #fff; }
+  input:focus, select:focus { outline: 2px solid var(--green); border-color: var(--green); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  button.primary { width: 100%; margin-top: 14px; padding: 13px; font-size: 1rem; font-weight: 700; color: #fff; background: var(--green); border: none; border-radius: 10px; cursor: pointer; }
+  button.primary:active { background: var(--green-dark); }
+  button.ghost { padding: 8px 12px; font-size: 0.9rem; background: #fff; border: 1px solid #c9cec9; border-radius: 8px; cursor: pointer; }
+  button.danger { color: var(--red); border-color: #e0b4ae; }
+  .hint { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
+  .total-line { font-size: 1.05rem; font-weight: 700; margin-top: 12px; }
+  .total-line span { color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+  td.num, th.num { text-align: right; }
+  .low { color: var(--red); font-weight: 700; }
+  .badge { display: inline-block; font-size: 0.72rem; font-weight: 700; color: var(--red); background: #fdecea; border-radius: 6px; padding: 2px 6px; margin-left: 6px; }
+  .empty { color: var(--muted); font-size: 0.92rem; padding: 6px 0; }
+  .sale-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+  .sale-item:last-child { border-bottom: none; }
+  .sale-item .meta { color: var(--muted); font-size: 0.82rem; }
+  .sale-item .amt { font-weight: 700; white-space: nowrap; }
+  .sale-item .amt small { display: block; font-weight: 400; color: var(--green); font-size: 0.78rem; text-align: right; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .actions button { flex: 1; min-width: 140px; }
+  footer { text-align: center; color: var(--muted); font-size: 0.82rem; margin-top: 8px; }
+  @media (max-width: 480px) { .row3 { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Shop Sales Book<small>Sales, stock and profit in one place.</small></h1>
+    <div class="shopname"><span id="shopNameLabel">My Shop</span><br><button id="editShopBtn" type="button">Change shop name</button></div>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="label">Today's sales</div><div class="value" id="todaySales">₦0</div><div class="sub" id="todayCount">0 sales</div></div>
+    <div class="card profit" id="profitCard"><div class="label">Today's profit</div><div class="value" id="todayProfit">₦0</div><div class="sub" id="todayMargin">0% margin</div></div>
+    <div class="card"><div class="label">Items sold today</div><div class="value" id="todayItems">0</div><div class="sub">across all products</div></div>
+    <div class="card"><div class="label">Products in stock</div><div class="value" id="stockCount">0</div><div class="sub" id="lowStockNote">No low stock</div></div>
+  </div>
+
+  <section>
+    <h2>Record a sale</h2>
+    <label for="saleProduct">Product</label>
+    <select id="saleProduct"></select>
+    <div class="row">
+      <div>
+        <label for="saleQty">Quantity</label>
+        <input id="saleQty" type="number" min="1" step="1" value="1">
+      </div>
+      <div>
+        <label for="salePrice">Price each (₦) <span style="font-weight:400">— leave blank to use the selling price</span></label>
+        <input id="salePrice" type="number" min="0" step="1" placeholder="Selling price">
+      </div>
+    </div>
+    <p class="total-line" id="saleTotal">Total: <span>₦0</span> &nbsp;·&nbsp; Profit: <span>₦0</span></p>
+    <button class="primary" id="recordSaleBtn" type="button">Record sale</button>
+    <p class="hint" id="saleHint">Pick a product first. Stock drops automatically when you record a sale.</p>
+  </section>
+
+  <section>
+    <h2>Add a product</h2>
+    <label for="prodName">Product name</label>
+    <input id="prodName" type="text" placeholder="e.g. Rice 50kg, Milo 500g, Groundnut oil 5L">
+    <div class="row3">
+      <div>
+        <label for="prodCost">Cost price (₦)</label>
+        <input id="prodCost" type="number" min="0" step="1" placeholder="What you paid">
+      </div>
+      <div>
+        <label for="prodPrice">Selling price (₦)</label>
+        <input id="prodPrice" type="number" min="0" step="1" placeholder="What you sell it for">
+      </div>
+      <div>
+        <label for="prodStock">Stock quantity</label>
+        <input id="prodStock" type="number" min="0" step="1" placeholder="How many you have">
+      </div>
+    </div>
+    <button class="primary" id="addProductBtn" type="button">Add product</button>
+    <p class="hint">Profit on each product is selling price minus cost price. The book works it out for every sale.</p>
+  </section>
+
+  <section>
+    <h2>Products</h2>
+    <div id="productList"></div>
+  </section>
+
+  <section>
+    <h2>Today's sales</h2>
+    <div id="todaySalesList"></div>
+    <div class="actions" style="margin-top:14px">
+      <button class="ghost" id="copyReportBtn" type="button">Copy today's report</button>
+      <button class="ghost" id="exportBtn" type="button">Download my data</button>
+      <button class="ghost danger" id="clearBtn" type="button">Clear everything</button>
+    </div>
+    <p class="hint" id="copyHint">The report copies as plain text, ready to paste into WhatsApp.</p>
+  </section>
+
+  <section>
+    <h2>Past days</h2>
+    <div id="historyList"></div>
+  </section>
+
+  <footer>Your data stays on this device, in your browser. Nothing is uploaded anywhere.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "shopSalesBook.v1";
+  var LOW_STOCK = 5;
+
+  function todayKey(d) {
+    d = d || new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function naira(n) { return "₦" + Math.round(n).toLocaleString("en-NG"); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  var store = { shopName: "My Shop", products: [], sales: [] };
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) { var parsed = JSON.parse(raw); if (parsed && typeof parsed === "object") store = parsed; }
+  } catch (e) { /* fresh start if saved data is unreadable */ }
+  if (!Array.isArray(store.products)) store.products = [];
+  if (!Array.isArray(store.sales)) store.sales = [];
+  if (!store.shopName) store.shopName = "My Shop";
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* storage full or blocked */ } }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function productById(id) { return store.products.find(function (p) { return p.id === id; }); }
+
+  function renderShop() { $("shopNameLabel").textContent = store.shopName; }
+
+  function renderCards() {
+    var tk = todayKey();
+    var todays = store.sales.filter(function (s) { return s.date === tk; });
+    var revenue = 0, profit = 0, items = 0;
+    todays.forEach(function (s) { revenue += s.total; profit += s.profit; items += s.qty; });
+    $("todaySales").textContent = naira(revenue);
+    $("todayCount").textContent = todays.length + (todays.length === 1 ? " sale" : " sales");
+    $("todayProfit").textContent = naira(profit);
+    $("profitCard").className = "card " + (profit < 0 ? "loss" : "profit");
+    $("todayMargin").textContent = revenue > 0 ? Math.round((profit / revenue) * 100) + "% margin" : "0% margin";
+    $("todayItems").textContent = items;
+    var totalStock = store.products.reduce(function (a, p) { return a + p.stock; }, 0);
+    $("stockCount").textContent = totalStock;
+    var low = store.products.filter(function (p) { return p.stock <= LOW_STOCK; });
+    $("lowStockNote").textContent = low.length === 0 ? "No low stock" : low.length + (low.length === 1 ? " product low" : " products low") + " (5 or fewer left)";
+  }
+
+  function renderProductSelect() {
+    var sel = $("saleProduct");
+    var prev = sel.value;
+    sel.innerHTML = "";
+    if (store.products.length === 0) {
+      var opt = document.createElement("option");
+      opt.value = ""; opt.textContent = "No products yet — add one below";
+      sel.appendChild(opt);
+    } else {
+      store.products.forEach(function (p) {
+        var o = document.createElement("option");
+        o.value = p.id;
+        o.textContent = p.name + " — " + naira(p.price) + (p.stock <= 0 ? " (out of stock)" : " (" + p.stock + " left)");
+        sel.appendChild(o);
+      });
+    }
+    if (prev) sel.value = prev;
+  }
+
+  function renderProducts() {
+    var box = $("productList");
+    if (store.products.length === 0) { box.innerHTML = '<p class="empty">No products yet. Add your first product above.</p>'; return; }
+    var html = '<table><thead><tr><th>Product</th><th class="num">Cost</th><th class="num">Price</th><th class="num">Stock</th><th class="num">Profit each</th><th></th></tr></thead><tbody>';
+    store.products.forEach(function (p) {
+      html += "<tr><td>" + esc(p.name) + (p.stock <= LOW_STOCK ? '<span class="badge">LOW</span>' : "") + "</td>" +
+        "<td class=\"num\">" + naira(p.cost) + "</td>" +
+        "<td class=\"num\">" + naira(p.price) + "</td>" +
+        "<td class=\"num" + (p.stock <= LOW_STOCK ? " low" : "") + "\">" + p.stock + "</td>" +
+        "<td class=\"num\">" + naira(p.price - p.cost) + "</td>" +
+        "<td class=\"num\"><button class=\"ghost danger\" type=\"button\" data-del-product=\"" + p.id + "\">Remove</button></td></tr>";
+    });
+    html += "</tbody></table>";
+    box.innerHTML = html;
+  }
+
+  function renderTodaySales() {
+    var tk = todayKey();
+    var todays = store.sales.filter(function (s) { return s.date === tk; }).slice().reverse();
+    var box = $("todaySalesList");
+    if (todays.length === 0) { box.innerHTML = '<p class="empty">No sales recorded today yet.</p>'; return; }
+    var html = "";
+    todays.forEach(function (s) {
+      var time = new Date(s.at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" });
+      html += '<div class="sale-item"><div><strong>' + esc(s.name) + "</strong> × " + s.qty +
+        '<div class="meta">' + time + " · " + naira(s.unitPrice) + " each</div></div>" +
+        '<div class="amt">' + naira(s.total) + "<small>profit " + naira(s.profit) + "</small></div>" +
+        '<button class="ghost danger" type="button" data-undo-sale="' + s.id + '">Undo</button></div>';
+    });
+    box.innerHTML = html;
+  }
+
+  function renderHistory() {
+    var byDay = {};
+    store.sales.forEach(function (s) {
+      if (!byDay[s.date]) byDay[s.date] = { revenue: 0, profit: 0, count: 0, items: 0 };
+      byDay[s.date].revenue += s.total; byDay[s.date].profit += s.profit;
+      byDay[s.date].count += 1; byDay[s.date].items += s.qty;
+    });
+    var days = Object.keys(byDay).sort().reverse().filter(function (d) { return d !== todayKey(); });
+    var box = $("historyList");
+    if (days.length === 0) { box.innerHTML = '<p class="empty">Past days will show here once you record sales on more than one day.</p>'; return; }
+    var html = '<table><thead><tr><th>Day</th><th class="num">Sales</th><th class="num">Revenue</th><th class="num">Profit</th></tr></thead><tbody>';
+    days.forEach(function (d) {
+      var r = byDay[d];
+      html += "<tr><td>" + d + "</td><td class=\"num\">" + r.count + " (" + r.items + " items)</td>" +
+        "<td class=\"num\">" + naira(r.revenue) + "</td><td class=\"num\">" + naira(r.profit) + "</td></tr>";
+    });
+    html += "</tbody></table>";
+    box.innerHTML = html;
+  }
+
+  function renderAll() {
+    renderShop(); renderCards(); renderProductSelect(); renderProducts(); renderTodaySales(); renderHistory();
+    updateSaleTotal();
+  }
+
+  function updateSaleTotal() {
+    var p = productById($("saleProduct").value);
+    var qty = Math.max(0, parseInt($("saleQty").value, 10) || 0);
+    var priceInput = $("salePrice").value.trim();
+    var unit = priceInput === "" ? (p ? p.price : 0) : Math.max(0, parseFloat(priceInput) || 0);
+    var total = unit * qty;
+    var profit = p ? (unit - p.cost) * qty : 0;
+    $("saleTotal").innerHTML = "Total: <span>" + naira(total) + "</span> &nbsp;·&nbsp; Profit: <span>" + naira(profit) + "</span>";
+    $("saleHint").textContent = p ? (p.stock <= 0 ? "This product is out of stock. Add stock by removing and re-adding it, or record the sale anyway and stock will go below zero." : p.stock + " in stock. Selling " + qty + " leaves " + (p.stock - qty) + ".") : "Pick a product first. Stock drops automatically when you record a sale.";
+  }
+
+  $("saleProduct").addEventListener("change", updateSaleTotal);
+  $("saleQty").addEventListener("input", updateSaleTotal);
+  $("salePrice").addEventListener("input", updateSaleTotal);
+
+  $("addProductBtn").addEventListener("click", function () {
+    var name = $("prodName").value.trim();
+    var cost = parseFloat($("prodCost").value);
+    var price = parseFloat($("prodPrice").value);
+    var stock = parseInt($("prodStock").value, 10);
+    if (!name) { alert("Enter a product name."); return; }
+    if (isNaN(cost) || cost < 0) { alert("Enter the cost price, what you paid for it."); return; }
+    if (isNaN(price) || price < 0) { alert("Enter the selling price."); return; }
+    if (isNaN(stock) || stock < 0) { alert("Enter how many you have in stock."); return; }
+    store.products.push({ id: uid(), name: name, cost: cost, price: price, stock: stock });
+    $("prodName").value = ""; $("prodCost").value = ""; $("prodPrice").value = ""; $("prodStock").value = "";
+    save(); renderAll();
+  });
+
+  $("recordSaleBtn").addEventListener("click", function () {
+    var p = productById($("saleProduct").value);
+    if (!p) { alert("Add a product first."); return; }
+    var qty = parseInt($("saleQty").value, 10);
+    if (isNaN(qty) || qty < 1) { alert("Enter a quantity of 1 or more."); return; }
+    var priceInput = $("salePrice").value.trim();
+    var unit = priceInput === "" ? p.price : parseFloat(priceInput);
+    if (isNaN(unit) || unit < 0) { alert("Enter a valid price."); return; }
+    var total = unit * qty;
+    var profit = (unit - p.cost) * qty;
+    p.stock -= qty;
+    store.sales.push({ id: uid(), productId: p.id, name: p.name, qty: qty, unitPrice: unit, total: total, profit: profit, date: todayKey(), at: new Date().toISOString() });
+    $("saleQty").value = "1"; $("salePrice").value = "";
+    save(); renderAll();
+  });
+
+  $("editShopBtn").addEventListener("click", function () {
+    var name = prompt("Shop name:", store.shopName);
+    if (name && name.trim()) { store.shopName = name.trim(); save(); renderShop(); }
+  });
+
+  $("productList").addEventListener("click", function (e) {
+    var id = e.target && e.target.getAttribute("data-del-product");
+    if (!id) return;
+    var p = productById(id);
+    if (!p) return;
+    if (!confirm("Remove " + p.name + " from your products? Past sales of it stay in the book.")) return;
+    store.products = store.products.filter(function (x) { return x.id !== id; });
+    save(); renderAll();
+  });
+
+  $("todaySalesList").addEventListener("click", function (e) {
+    var id = e.target && e.target.getAttribute("data-undo-sale");
+    if (!id) return;
+    var sale = store.sales.find(function (s) { return s.id === id; });
+    if (!sale) return;
+    if (!confirm("Undo this sale of " + sale.name + " × " + sale.qty + "? The stock goes back.")) return;
+    var p = productById(sale.productId);
+    if (p) p.stock += sale.qty;
+    store.sales = store.sales.filter(function (s) { return s.id !== id; });
+    save(); renderAll();
+  });
+
+  $("copyReportBtn").addEventListener("click", function () {
+    var tk = todayKey();
+    var todays = store.sales.filter(function (s) { return s.date === tk; });
+    var revenue = 0, profit = 0, items = 0;
+    todays.forEach(function (s) { revenue += s.total; profit += s.profit; items += s.qty; });
+    var lines = [store.shopName + " — Sales report, " + tk, "Sales: " + todays.length, "Items sold: " + items, "Revenue: " + naira(revenue), "Profit: " + naira(profit)];
+    var byProduct = {};
+    todays.forEach(function (s) { byProduct[s.name] = (byProduct[s.name] || 0) + s.qty; });
+    Object.keys(byProduct).forEach(function (name) { lines.push("• " + name + " × " + byProduct[name]); });
+    var text = lines.join("\n");
+    function done() { $("copyHint").textContent = "Report copied. Paste it into WhatsApp."; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { prompt("Copy this report:", text); });
+    } else { prompt("Copy this report:", text); }
+  });
+
+  $("exportBtn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "shop-sales-book-backup.json";
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  $("clearBtn").addEventListener("click", function () {
+    if (!confirm("Clear everything? All products and sales will be deleted. Download your data first if you want a copy.")) return;
+    store = { shopName: store.shopName, products: [], sales: [] };
+    save(); renderAll();
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
